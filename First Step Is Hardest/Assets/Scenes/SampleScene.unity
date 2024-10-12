@@ -9569,11 +9569,12 @@ MonoBehaviour:
   grappleForce: 100
   maxGrappleDistance: 100
   grappleCooldown: 2
-  vaultDistance: 0
-  vaultHeight: 0
-  vaultSpeed: 0
+  vaultDistance: 20
+  vaultHeight: 20
+  vaultSpeed: 10
   crouchedColliderHeight: 1
   originalColliderHeight: 0
+  noclipSpeed: 100
 --- !u!54 &1434133103
 Rigidbody:
   m_ObjectHideFlags: 0
