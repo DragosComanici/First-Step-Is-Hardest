@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class movement : MonoBehaviour
+public class Movement : MonoBehaviour
 {
     public float moveSpeed = 5f;
     public float jumpForce = 200f;
@@ -18,9 +18,11 @@ public class movement : MonoBehaviour
     public float vaultSpeed = 5f; // Speed of vaulting motion
 
     private bool isGrounded = true;
-    private Rigidbody rb;
+    private bool canDoubleJump = false; // To track if the player can double jump
+    private bool isJumping = false; // To track if the player has already jumped
+    private bool hasDoubleJumped = false; // To track if the player has used double jump
 
-    private float lastGrappleTime = -Mathf.Infinity; // Track last grapple time
+    private Rigidbody rb;
 
     // Crouching variables
     private Vector3 originalScale;
@@ -33,6 +35,9 @@ public class movement : MonoBehaviour
     private bool isNoclip = false; // Track noclip state
     public float noclipSpeed = 10f; // Speed during noclip
     private Collider playerColliderComponent; // Reference to the player's collider component
+
+    // Double jump variables
+    public bool doubleJumpUnlocked = false; // Whether double jump is unlocked
 
     void Start()
     {
@@ -74,28 +79,38 @@ public class movement : MonoBehaviour
             if (Input.GetKey(KeyCode.LeftShift))
             {
                 currentSpeed = sprintSpeed;
-                Debug.Log("Sprinting: currentSpeed set to " + currentSpeed);
             }
             else
             {
                 currentSpeed = moveSpeed;
-                Debug.Log("Walking: currentSpeed set to " + currentSpeed);
             }
 
             // Movement
             float moveX = Input.GetAxis("Horizontal") * currentSpeed * Time.deltaTime;
             float moveZ = Input.GetAxis("Vertical") * currentSpeed * Time.deltaTime;
-            transform.Translate(new Vector3(moveX, 0, moveZ));
 
-            // Jumping
-            if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+            // Combine horizontal movement and apply it to the rigidbody
+            Vector3 move = transform.right * moveX + transform.forward * moveZ;
+
+            // Jumping (including double jump logic)
+            if (Input.GetKeyDown(KeyCode.Space) && (isGrounded || (doubleJumpUnlocked && !hasDoubleJumped)))
             {
-                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-                isGrounded = false;
+                if (isGrounded)
+                {
+                    rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse); // Jump force in the upward direction
+                    isGrounded = false; // Set to false while in the air
+                    isJumping = true; // The player has jumped
+                    hasDoubleJumped = false; // Reset double jump state
+                }
+                else if (doubleJumpUnlocked && !isGrounded && !hasDoubleJumped)
+                {
+                    rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse); // Double jump force
+                    hasDoubleJumped = true; // Disable further double jumps
+                }
             }
 
             // Grapple mechanic with cooldown check
-            if (Input.GetMouseButtonDown(1) && Time.time >= lastGrappleTime + grappleCooldown)
+            if (Input.GetMouseButtonDown(1) && Time.time >= grappleCooldown)
             {
                 Grapple();
             }
@@ -105,6 +120,9 @@ public class movement : MonoBehaviour
             {
                 AttemptVault();
             }
+
+            // Apply movement to Rigidbody (while also considering the current speed)
+            rb.MovePosition(rb.position + move); // Use MovePosition to avoid physics conflicts
         }
     }
 
@@ -112,7 +130,9 @@ public class movement : MonoBehaviour
     {
         if (!isNoclip && other.gameObject.CompareTag("Ground"))
         {
-            isGrounded = true;
+            isGrounded = true; // Reset to grounded when touching the ground
+            isJumping = false; // Allow jumping again
+            hasDoubleJumped = false; // Reset double jump state
         }
     }
 
@@ -127,7 +147,6 @@ public class movement : MonoBehaviour
             {
                 Vector3 grapplePoint = hit.point; // Point where the ray hit
                 ApplyGrappleForce(grapplePoint);
-                lastGrappleTime = Time.time; // Record the time of this grapple
             }
         }
     }
@@ -201,8 +220,6 @@ public class movement : MonoBehaviour
             rb.isKinematic = false; // Re-enable physics
             playerColliderComponent.enabled = true; // Re-enable collision
         }
-
-        Debug.Log("Noclip mode: " + (isNoclip ? "Enabled" : "Disabled"));
     }
 
     private void NoclipMovement()
@@ -221,5 +238,11 @@ public class movement : MonoBehaviour
         }
 
         transform.Translate(new Vector3(moveX, moveY, moveZ));
+    }
+
+    // This method will be called by the unlocker to activate double jump
+    public void UnlockDoubleJump()
+    {
+        doubleJumpUnlocked = true;
     }
 }
