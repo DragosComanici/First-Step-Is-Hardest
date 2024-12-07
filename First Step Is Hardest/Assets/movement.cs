@@ -136,7 +136,13 @@ public class Movement : MonoBehaviour
         }
     }
 
-    void Grapple()
+    // Add this variable to track the last grapple time
+private float lastGrappleTime;
+
+void Grapple()
+{
+    // Check if the grapple is off cooldown
+    if (Time.time >= lastGrappleTime + grappleCooldown)
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
@@ -147,9 +153,18 @@ public class Movement : MonoBehaviour
             {
                 Vector3 grapplePoint = hit.point; // Point where the ray hit
                 ApplyGrappleForce(grapplePoint);
+
+                // Update the last grapple time
+                lastGrappleTime = Time.time;
             }
         }
     }
+    else
+    {
+        Debug.Log("Grapple on cooldown!");
+    }
+}
+
 
     void ApplyGrappleForce(Vector3 targetPoint)
     {
