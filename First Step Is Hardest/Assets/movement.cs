@@ -20,7 +20,7 @@ public class Movement : MonoBehaviour
     private bool isGrounded = true;
     private bool canDoubleJump = false; // To track if the player can double jump
     private bool isJumping = false; // To track if the player has already jumped
-    private bool hasDoubleJumped = false; // To track if the player has used double jump
+    public bool hasDoubleJumped = false; // To track if the player has used double jump
 
     private Rigidbody rb;
 
