@@ -28,7 +28,7 @@ public class Movement : MonoBehaviour
     private Vector3 originalScale;
     private Vector3 crouchedScale; // Height reduced but same width and depth
     private BoxCollider playerCollider; // Reference to the player's collider
-    public float crouchedColliderHeight = 2f; // Height of collider when crouching
+    public float crouchedColliderHeight = 1f; // Height of collider when crouching
     public float originalColliderHeight; // Original height of the collider
 
     // Noclip variables
@@ -38,11 +38,6 @@ public class Movement : MonoBehaviour
 
     // Double jump variables
     public bool doubleJumpUnlocked = false; // Whether double jump is unlocked
-
-    // Grapple lock mechanic variables
-    public bool grappleLockUnlocked = false; // Whether grapple lock is unlocked
-    private bool isLockedToObject = false; // Whether the player is locked to an object during grapple lock
-    private Transform lockedObject; // The object the player is locked to
 
     void Start()
     {
@@ -114,10 +109,10 @@ public class Movement : MonoBehaviour
                 }
             }
 
-            // Grapple mechanic with cooldown check (only if grapple lock is unlocked)
-            if (grappleLockUnlocked && Input.GetMouseButtonDown(0) && Time.time >= grappleCooldown)
+            // Grapple mechanic with cooldown check
+            if (Input.GetMouseButtonDown(1) && Time.time >= grappleCooldown)
             {
-                GrappleLock();
+                Grapple();
             }
 
             // Vaulting mechanic
@@ -141,7 +136,7 @@ public class Movement : MonoBehaviour
         }
     }
 
-    void GrappleLock()
+    void Grapple()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
@@ -151,23 +146,15 @@ public class Movement : MonoBehaviour
             if (hit.collider != null)
             {
                 Vector3 grapplePoint = hit.point; // Point where the ray hit
-                lockedObject = hit.collider.transform; // Lock to the object
-                isLockedToObject = true; // Enable locking
-
-                // Optional: Do something to visually indicate the player is locked, like changing the UI or player state
+                ApplyGrappleForce(grapplePoint);
             }
         }
     }
 
     void ApplyGrappleForce(Vector3 targetPoint)
     {
-        if (isLockedToObject)
-        {
-            // Calculate the direction to move around the object (lock movement to spherical orbit)
-            Vector3 direction = (targetPoint - transform.position).normalized;
-            rb.velocity = Vector3.zero; // Stop current movement
-            rb.AddForce(direction * grappleForce, ForceMode.Impulse); // Apply force to move around the locked object
-        }
+        Vector3 direction = (targetPoint - transform.position).normalized;
+        rb.AddForce(direction * grappleForce, ForceMode.Impulse);
     }
 
     private void AttemptVault()
@@ -239,9 +226,23 @@ public class Movement : MonoBehaviour
     {
         float moveX = Input.GetAxis("Horizontal") * noclipSpeed * Time.deltaTime;
         float moveZ = Input.GetAxis("Vertical") * noclipSpeed * Time.deltaTime;
-        float moveY = 0f; // Lock vertical movement during noclip
+        float moveY = 0;
 
-        Vector3 move = transform.right * moveX + transform.forward * moveZ + transform.up * moveY;
-        transform.position += move; // Free movement in any direction
+        if (Input.GetKey(KeyCode.Space))
+        {
+            moveY = noclipSpeed * Time.deltaTime;
+        }
+        else if (Input.GetKey(KeyCode.C))
+        {
+            moveY = -noclipSpeed * Time.deltaTime;
+        }
+
+        transform.Translate(new Vector3(moveX, moveY, moveZ));
+    }
+
+    // This method will be called by the unlocker to activate double jump
+    public void UnlockDoubleJump()
+    {
+        doubleJumpUnlocked = true;
     }
 }
